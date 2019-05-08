@@ -134,7 +134,7 @@ menu_confisca["My cars"] = {function(player, choice)
             else
               vRPclient.notify(playerx, {"~r~Not enought money."})
             end
-					end,"The cop that seized your car: "..v.cop.."\nFine price: $"..pret}
+					end,"The cop that seized your car: "..v.cop.."<br/>Fine price: $"..pret}
 			end
 
 			vRP.openMenu({player, menu_sub})
