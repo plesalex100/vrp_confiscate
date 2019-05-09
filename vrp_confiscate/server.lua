@@ -75,6 +75,8 @@ end, "Seize the car you are driving at the moment."}
 
 RegisterServerEvent("plesConf:pasul2")
 AddEventHandler("plesConf:pasul2", function(model, plate)
+	local user_id = vRP.getUserId({source})
+	local player = vRP.getUserSource({user_id})
 	if vRP.hasPermission({user_id, cop_permission}) then
 		getUserByPlate(plate, function(u_id)
 			u_id = parseInt(u_id)
@@ -89,26 +91,26 @@ AddEventHandler("plesConf:pasul2", function(model, plate)
 									local modelX = v.vehicle
 									gasit = true
 									--TriggerClientEvent("chatMessage", source, "Model gasit: "..v.vehicle) -- Debug
-									local cop = GetPlayerName(source)
+									local cop = GetPlayerName(player)
 									MySQL.execute("vRP/ples_confVeh", {u_id = u_id, modelX = modelX, cop = cop })
-									TriggerClientEvent("wk:deleteVehicle", source)
+									TriggerClientEvent("wk:deleteVehicle", player)
 
 									TriggerClientEvent("chatMessage", tsource, "^1Info^7: Your car was seized by the police. Go to the police station as soon as possible to recover it !")
-									TriggerClientEvent("chatMessage", source, "^1Info^7: You seized "..GetPlayerName(tsource).."'s car [ID "..u_id.."]")
+									TriggerClientEvent("chatMessage", player, "^1Info^7: You seized "..GetPlayerName(tsource).."'s car [ID "..u_id.."]")
 								end
 							end
 							if not gasit then
-								vRPclient.notify(source, {"~r~The player does not own a car of this model."})
+								vRPclient.notify(player, {"~r~The player does not own a car of this model."})
 							end
 						else
-							vRPclient.notify(source, {"~r~The player does not own a car of this model."})
+							vRPclient.notify(player, {"~r~The player does not own a car of this model."})
 						end
 					end)
 				else
-					vRPclient.notify(source, {"~r~The player is offline."})
+					vRPclient.notify(player, {"~r~The player is offline."})
 				end
 			else
-				vRPclient.notify(source, {"~r~This car is not an personal vehicle"})
+				vRPclient.notify(player, {"~r~This car is not an personal vehicle"})
 			end
 		end)
 	end
