@@ -1,3 +1,4 @@
+ALTER TABLE vrp_user_vehicles ADD veh_confiscate TINYINT NOT NULL DEFAULT 0;
 CREATE TABLE `vrp_confiscate`(
     `id` INT AUTO_INCREMENT,
     `user_id` INT(30) NOT NULL,
