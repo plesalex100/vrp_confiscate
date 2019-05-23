@@ -13,7 +13,8 @@ local cop_permission = "police.easy_cuff" -- permission for a cop to seize an ve
 
 
 MySQL.createCommand("vRP/ples_confiscate", [[
-CREATE TABLE IF NOT EXISTS `vrp_confiscate`(
+ALTER TABLE vrp_user_vehicles ADD veh_confiscate TINYINT NOT NULL DEFAULT 0;
+CREATE TABLE `vrp_confiscate`(
     `id` INT AUTO_INCREMENT,
     `user_id` INT(30) NOT NULL,
     `vehicle` VARCHAR(255) NOT NULL,
@@ -43,13 +44,16 @@ end
 
 MySQL.createCommand("vRP/ples_getVehs", "SELECT `vehicle` FROM `vrp_user_vehicles` WHERE `user_id`=@u_id")
 MySQL.createCommand("vRP/ples_confVeh", [[
-DELETE FROM `vrp_user_vehicles` WHERE `user_id`=@u_id AND `vehicle`=@modelX;
-INSERT IGNORE INTO `vrp_confiscate` (`user_id`, `vehicle`, `cop`) VALUES (@u_id, @modelX, @cop);
+  UPDATE vrp_user_vehicles SET veh_confiscate = 1 WHERE `user_id`=@u_id AND `vehicle`=@modelX;
+  INSERT IGNORE INTO `vrp_confiscate` (`user_id`, `vehicle`, `cop`) VALUES (@u_id, @modelX, @cop);
 ]])
 
 
 MySQL.createCommand("vRP/ples_getConfiscate", "SELECT vehicle, cop FROM vrp_confiscate WHERE user_id = @user_id")
-MySQL.createCommand("vRP/ples_stergConf", "DELETE FROM vrp_confiscate WHERE user_id = @user_id AND vehicle = @model")
+MySQL.createCommand("vRP/ples_stergConf", [[
+UPDATE vrp_user_vehicles SET veh_confiscate = 0 WHERE `user_id`=@user_id AND `vehicle`=@model;
+DELETE FROM vrp_confiscate WHERE user_id = @user_id AND vehicle = @model
+]])
 -- init
 
 --MySQL.query("vRP/ples_confiscate")
@@ -61,16 +65,16 @@ local menu_confisca = {
 }
 
 menu_confisca["Confiscate a car"] = {function(player, choice)
-  local user_id = vRP.getUserId({player})
-  if user_id ~= nil then
-    if vRP.hasPermission({user_id, cop_permission}) then
-      vRP.closeMenu({player})
-      TriggerClientEvent("plesConf:confiscateVeh", player)
-    else
-      vRP.closeMenu({player})
-      vRPclient.notify(player, {"~r~Only a cop can confiscate a personal vehicle."})
-    end
-  end
+	local user_id = vRP.getUserId({player})
+	if user_id ~= nil then
+		if vRP.hasPermission({user_id, cop_permission}) then
+			vRP.closeMenu({player})
+			TriggerClientEvent("plesConf:confiscateVeh", player)
+		else
+			vRP.closeMenu({player})
+			vRPclient.notify(player, {"~r~Only a cop can confiscate a personal vehicle."})
+		end
+	end
 end, "Seize the car you are driving at the moment."}
 
 RegisterServerEvent("plesConf:pasul2")
@@ -117,31 +121,31 @@ AddEventHandler("plesConf:pasul2", function(model, plate)
 end)
 
 menu_confisca["My cars"] = {function(player, choice)
-  local user_id = vRP.getUserId({player})
-  if user_id ~= nil then
+	local user_id = vRP.getUserId({player})
+	if user_id ~= nil then
 		local menu_sub = {
-			name = "Seized cars",
-			css={top = "75px", header_color="rgba(226, 87, 36, 0.75)"}
+		name = "Seized cars",
+		css={top = "75px", header_color="rgba(226, 87, 36, 0.75)"}
 		}
 
 		MySQL.query("vRP/ples_getConfiscate", {user_id = user_id}, function(pvehicles, affected)
 
 			for k,v in pairs(pvehicles) do
-					menu_sub[ "Car #"..k ] = {function(playerx, choicex)
-            if vRP.tryFullPayment({user_id, pret}) then
-  						TriggerEvent('veh_SR:CheckMoneyForBasicVeh', user_id, v.vehicle, pret, "car")
-  						vRPclient.notify(playerx, {"You paid the fines to recover the car.\nGo to a garage to use it."})
-  						local model = v.vehicle
-  						MySQL.execute("vRP/ples_stergConf", {user_id = user_id, model = model})
-            else
-              vRPclient.notify(playerx, {"~r~Not enought money."})
-            end
-					end,"The cop that seized your car: "..v.cop.."<br/>Fine price: $"..pret}
+				menu_sub[ "Car #"..k ] = {function(playerx, choicex)
+					if vRP.tryFullPayment({user_id, pret}) then
+						local model = v.vehicle
+						MySQL.execute("vRP/ples_stergConf", {user_id = user_id, model = model})
+						vRPclient.notify(playerx, {"You paid the fines to recover the car.\nGo to a garage to use it."})
+						vRP.closeMenu({playerx})
+					else
+						vRPclient.notify(playerx, {"~r~Not enought money."})
+					end
+				end,"The cop that seized your car: "..v.cop.."<br/>Fine price: $"..pret}
 			end
 
 			vRP.openMenu({player, menu_sub})
 		end)
-  end
+	end
 end, "Seize the car you are driving at the moment."}
 
 local function build_confisca(source)
